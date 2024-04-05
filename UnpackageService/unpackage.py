@@ -1,16 +1,19 @@
-import zipfile
 import os
 import shutil
 import sys
 
-def extract_zip(zipname, extract_to_directory):
-    """Extract a zip file to the specified directory."""
-    try:
-        with zipfile.ZipFile(zipname, 'r') as zip_ref:
-            zip_ref.extractall(extract_to_directory)
-        print(f"Successfully extracted '{zipname}' to '{extract_to_directory}'.")
-    except Exception as e:
-        print(f"Error unpacking: {e}. Please check the zip file and try again.")
+def merge_dirs(src, dst):
+    """Merge two directories."""
+    if not os.path.exists(dst):
+        shutil.move(src, dst)
+    else:
+        for item in os.listdir(src):
+            s = os.path.join(src, item)
+            d = os.path.join(dst, item)
+            if os.path.isdir(s):
+                merge_dirs(s, d)
+            else:
+                shutil.move(s, d)
 
 def unpackage_vscode_environment(zipname):
     appdata_path = os.getenv("APPDATA")
@@ -18,19 +21,19 @@ def unpackage_vscode_environment(zipname):
 
     if not appdata_path or not userprofile_path:
         print("Error: Environment variables APPDATA or USERPROFILE not found.")
-        sys.exit(1)
+        return
     
-    # Directories where VS Code settings and extensions will be restored
+    # Prepare target directories
     code_dir = os.path.join(appdata_path, "Code")
     vscode_dir = os.path.join(userprofile_path, ".vscode")
 
-    # Extract the zip to a temporary directory
+    # Extract zip to a temporary directory
     temp_dir = "vscode_temp"
-    extract_zip(zipname, temp_dir)
+    shutil.unpack_archive(zipname, temp_dir)
 
-    # Move the directories to their correct locations
-    shutil.move(os.path.join(temp_dir, "vscode", "Code"), code_dir)
-    shutil.move(os.path.join(temp_dir, "vscode", ".vscode"), vscode_dir)
+    # Merge directories
+    merge_dirs(os.path.join(temp_dir, "vscode", "Code"), code_dir)
+    merge_dirs(os.path.join(temp_dir, "vscode", ".vscode"), vscode_dir)
 
     # Clean up the temporary directory
     shutil.rmtree(temp_dir)
