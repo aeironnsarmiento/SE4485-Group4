@@ -1,19 +1,15 @@
 import PySimpleGUI as sg
 import subprocess
-import os
-
-# Get the path to the current user's Downloads folder
-default_download_path = os.path.expanduser('~/Downloads')
 
 def call_package_script(destination):
-    subprocess.run(['python', 'package.py', destination], check=True)
+    subprocess.run(['python', '/PackageService/package.py', destination], check=True)
 
 def call_unpackage_script(zip_file):
     subprocess.run(['python', 'unpackage.py', zip_file], check=True)
 
 layout = [
     [sg.Text('VSCode Environment Transfer Tool', size=(30, 1), justification='center', font=("Helvetica", 25))],
-    [sg.Text('Destination Directory:'), sg.InputText(default_download_path, key='DESTINATION'), sg.FolderBrowse()],
+    [sg.Text('Destination Directory:'), sg.InputText('C:\\Users\\jg\\Desktop', key='DESTINATION'), sg.FolderBrowse()],
     [sg.InputText('', key='ZIP_FILE', enable_events=True, visible=False), sg.FileBrowse('Select Zip File', file_types=(("Zip Files", "*.zip"),), target='ZIP_FILE')],
     [sg.Button('Package VSCode Env'), sg.Button('Setup VSCode Env')]
 ]
