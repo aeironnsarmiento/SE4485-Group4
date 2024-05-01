@@ -1,37 +1,34 @@
-"""
-This file packages a VSCode environment from the user's machine into the current directory.
-This will keep the user's extensions, settings, keybindings, and snippets and put them into a single zip file
-This will be executed only on windows machines
-"""
 import os
-import shutil
+import zipfile
 import sys
 
-def main():
+def zipdir(path, ziph, progress_callback):
+    total_files = sum([len(files) for r, d, files in os.walk(path)])
+    processed_files = 0
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if 'cache' not in file.lower() and 'tmp' not in file.lower():
+                ziph.write(os.path.join(root, file),
+                           os.path.relpath(os.path.join(root, file),
+                           os.path.join(path, '..')))
+                processed_files += 1
+                progress_callback(processed_files / total_files * 100)
+    progress_callback(100)
 
-    print("Packaging VSCode environment...")
+def package_vscode(destination, progress_callback):
+    appdata_code_path = os.path.join(os.getenv('APPDATA'), 'Code')
+    userprofile_vscode_path = os.path.join(os.getenv('USERPROFILE'), '.vscode')
+    zip_filename = os.path.join(destination, 'vscode_backup.zip')
 
-    # Copy the user's VSCode settings and extensions to the current directory
-    shutil.copytree(os.path.join(os.getenv("APPDATA"), "Code"), "vscode/Code")
+    with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        zipdir(appdata_code_path, zipf, progress_callback)
+        zipdir(userprofile_vscode_path, zipf, progress_callback)
 
-    # copy the user's .vscode directory to the current directory
-    shutil.copytree(os.path.join(os.getenv("USERPROFILE"), ".vscode"), "vscode/.vscode")
+    print(f'Packaging complete. Archive created at: {zip_filename}')
 
-    # Zip the copied directory
-    if len(sys.argv) == 1:
-        shutil.make_archive("vscode", "zip", "vscode")
-    elif len(sys.argv) == 2:
-        destination_path = sys.argv[1]
-        shutil.make_archive(destination_path + "vscode", "zip", "vscode")
-    else:
-        print("Usage: python package.py [optional: destination_path]")
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        print("Usage: python package.py <destination>")
         sys.exit(1)
-
-    # Remove the copied directory
-    shutil.rmtree("vscode")
-
-    print("Packaging complete.")
-
-
-if __name__ == "__main__":
-    main()
+    destination_path = sys.argv[1]
+    package_vscode(destination_path, print)
